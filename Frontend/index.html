@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Tareas (Python + SQL)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    
+    <div id="root-container">
+        <h1>Mi Lista de Tareas</h1>
+
+        <form id="task-form">
+            <input type="text" id="task-title" placeholder="¿Qué necesitas hacer?" required>
+            <button type="submit">Añadir Tarea</button>
+        </form>
+
+        <ul id="task-list">
+            </ul>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000/api/tareas/";
+        const taskForm = document.getElementById("task-form");
+        const taskTitleInput = document.getElementById("task-title");
+        const taskList = document.getElementById("task-list");
+
+        // 1. FUNCIÓN PARA OBTENER Y MOSTRAR TAREAS (GET)
+        async function fetchTasks() {
+            try {
+                const response = await fetch(API_URL);
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status}`);
+                }
+                const tareas = await response.json();
+                
+                taskList.innerHTML = ""; // Limpia la lista
+                
+                tareas.forEach(tarea => {
+                    const li = document.createElement("li");
+                    const taskSpan = document.createElement("span");
+                    taskSpan.textContent = `(ID: ${tarea.id}) - ${tarea.titulo}`;
+                    
+                    if (tarea.completada) {
+                        taskSpan.classList.add("task-completed");
+                    }
+                    
+                    const actionsDiv = document.createElement("div");
+                    actionsDiv.classList.add("task-actions");
+
+                    // --- Botón de Completar (Toggle) ---
+                    const toggleButton = document.createElement("button");
+                    toggleButton.textContent = tarea.completada ? "Deshacer" : "Completar";
+                    toggleButton.classList.add("btn-toggle");
+                    toggleButton.onclick = () => toggleTask(tarea.id);
+
+                    // --- Botón de Borrar ---
+                    const deleteButton = document.createElement("button");
+                    deleteButton.textContent = "Borrar";
+                    deleteButton.classList.add("btn-delete");
+                    deleteButton.onclick = () => deleteTask(tarea.id);
+
+                    actionsDiv.appendChild(toggleButton);
+                    actionsDiv.appendChild(deleteButton);
+                    li.appendChild(taskSpan);
+                    li.appendChild(actionsDiv);
+                    taskList.appendChild(li);
+                });
+            } catch (error) {
+                console.error("Error al cargar tareas:", error);
+                alert("Error al cargar tareas. Revisa la consola (F12) y asegúrate de que el servidor Uvicorn esté corriendo.");
+            }
+        }
+
+        // 2. FUNCIÓN PARA CREAR UNA TAREA (POST)
+        taskForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const titulo = taskTitleInput.value;
+            if (!titulo) return;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ titulo: titulo }),
+                });
+
+                if (!response.ok) {
+                    // Si el servidor da un error (ej. 422), muéstralo
+                    const errorData = await response.json();
+                    console.error("Error del servidor:", errorData);
+                    alert(`Error al crear tarea: ${errorData.detail || 'Error desconocido'}`);
+                    return;
+                }
+
+                // Si todo salió bien:
+                taskTitleInput.value = "";
+                fetchTasks(); // Recarga la lista
+
+            } catch (error) {
+                // Esto captura errores de red (servidor caído, CORS)
+                console.error("Error de red al crear tarea:", error);
+                alert("Error de red. ¿Está el servidor Uvicorn corriendo?");
+            }
+        });
+
+        // 3. FUNCIÓN PARA ACTUALIZAR (PUT)
+        async function toggleTask(id) {
+            try {
+                const response = await fetch(`${API_URL}${id}`, {
+                    method: "PUT",
+                });
+                if (!response.ok) {
+                     const errorData = await response.json();
+                     throw new Error(errorData.detail || 'Error al actualizar');
+                }
+                fetchTasks(); // Recarga la lista
+            } catch (error) {
+                console.error("Error al actualizar tarea:", error);
+                alert(`Error al actualizar tarea: ${error.message}`);
+            }
+        }
+
+        // 4. FUNCIÓN PARA BORRAR (DELETE)
+        async function deleteTask(id) {
+            try {
+                const response = await fetch(`${API_URL}${id}`, {
+                    method: "DELETE",
+                });
+                if (!response.ok) {
+                     const errorData = await response.json();
+                     throw new Error(errorData.detail || 'Error al borrar');
+                }
+                fetchTasks(); // Recarga la lista
+            } catch (error) {
+                console.error("Error al borrar tarea:", error);
+                alert(`Error al borrar tarea: ${error.message}`);
+            }
+        }
+
+        // Carga inicial de tareas al abrir la página
+        fetchTasks();
+    </script>
+</body>
+</html>
