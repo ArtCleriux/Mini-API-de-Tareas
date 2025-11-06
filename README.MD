@@ -4,11 +4,6 @@ Este es un proyecto Full-Stack simple que demuestra cómo construir una API REST
 
 El proyecto incluye un backend de API y un frontend de cliente HTML/CSS/JS simple para consumir la API.
 
-### Demo
-[¡Aquí deberías poner tu captura de pantalla o, mejor aún, un GIF corto que muestre cómo añades, completas y borras tareas!]
-
----
-
 ### 🚀 Tecnologías Utilizadas
 
 * **Backend:**
